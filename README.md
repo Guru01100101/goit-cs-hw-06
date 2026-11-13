@@ -27,6 +27,17 @@ Copy-Item .env.example .env
 docker compose up --build
 ```
 
+Для Docker Compose залиште в `.env` такі значення:
+
+```env
+SOCKET_HOST_CLIENT=localhost
+MONGO_URI=mongodb://mongo:27017
+```
+
+HTTP- і UDP-сервери працюють в одному контейнері `app`, тому UDP-повідомлення
+надсилаються на `localhost`. MongoDB працює в окремому контейнері та доступна
+застосунку через ім'я сервісу `mongo`.
+
 Відкрийте в браузері <http://localhost:3000>.
 
 Форма доступна за адресою <http://localhost:3000/message.html>. Після
