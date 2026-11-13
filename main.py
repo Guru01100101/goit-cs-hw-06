@@ -2,7 +2,7 @@ import logging
 import os
 import socket
 from datetime import datetime
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import mimetypes
 from multiprocessing import Process
 from pathlib import Path
@@ -32,6 +32,10 @@ logging.basicConfig(
 
 
 class HttpHandler(BaseHTTPRequestHandler):
+    def setup(self):
+        super().setup()
+        self.connection.settimeout(10)
+
     def send_html(self, filename, status=200):
         file_path = BASE_DIR / filename
         content = file_path.read_bytes()
@@ -127,7 +131,8 @@ def run_socket_server():
 
 
 def run_http_server():
-    server = HTTPServer((HTTP_HOST, HTTP_PORT), HttpHandler)
+    server = ThreadingHTTPServer((HTTP_HOST, HTTP_PORT), HttpHandler)
+    server.daemon_threads = True
     logging.info("HTTP server listening on %s:%s", HTTP_HOST, HTTP_PORT)
     server.serve_forever()
 
