@@ -1,9 +1,11 @@
 import logging
 import os
+import socket
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import mimetypes
+from multiprocessing import Process
 from pathlib import Path
-from urllib.parse import unquote, urlparse
+from urllib.parse import parse_qs, unquote, urlparse
 
 # HTTP server
 HTTP_HOST = "0.0.0.0"
@@ -12,6 +14,7 @@ HTTP_PORT = 3000
 # Socket server (UDP)
 SOCKET_HOST = "0.0.0.0"
 SOCKET_PORT = 5000
+SOCKET_HOST_CLIENT = os.getenv("SOCKET_HOST_CLIENT", "localhost")
 
 # Folder with html pages and static assets
 BASE_DIR = Path(__file__).parent / "front-init"
@@ -76,9 +79,31 @@ class HttpHandler(BaseHTTPRequestHandler):
         body = self.rfile.read(content_length)
         logging.info("Received message form data: %s", body)
 
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as client_socket:
+            client_socket.sendto(body, (SOCKET_HOST_CLIENT, SOCKET_PORT))
+
         self.send_response(302)
         self.send_header("Location", "/")
         self.end_headers()
+
+
+def parse_message(data):
+    decoded_data = unquote(data.decode("utf-8"))
+    fields = parse_qs(decoded_data)
+    return {
+        "username": fields.get("username", [""])[0],
+        "message": fields.get("message", [""])[0],
+    }
+
+
+def run_socket_server():
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as server_socket:
+        server_socket.bind((SOCKET_HOST, SOCKET_PORT))
+        logging.info("UDP server listening on %s:%s", SOCKET_HOST, SOCKET_PORT)
+
+        while True:
+            data, address = server_socket.recvfrom(1024 * 4)
+            logging.info("Received UDP message from %s: %s", address, parse_message(data))
 
 
 def run_http_server():
@@ -88,7 +113,14 @@ def run_http_server():
 
 
 def main():
-    run_http_server()
+    http_process = Process(target=run_http_server, name="http-server")
+    socket_process = Process(target=run_socket_server, name="socket-server")
+
+    http_process.start()
+    socket_process.start()
+
+    http_process.join()
+    socket_process.join()
 
 
 if __name__ == "__main__":
