@@ -11,12 +11,12 @@ from urllib.parse import parse_qs, unquote, urlparse
 from pymongo import MongoClient
 
 # HTTP server
-HTTP_HOST = "0.0.0.0"
-HTTP_PORT = 3000
+HTTP_HOST = os.getenv("HTTP_HOST", "0.0.0.0")
+HTTP_PORT = int(os.getenv("HTTP_PORT", "3000"))
 
 # Socket server (UDP)
-SOCKET_HOST = "0.0.0.0"
-SOCKET_PORT = 5000
+SOCKET_HOST = os.getenv("SOCKET_HOST", "0.0.0.0")
+SOCKET_PORT = int(os.getenv("SOCKET_PORT", "5000"))
 SOCKET_HOST_CLIENT = os.getenv("SOCKET_HOST_CLIENT", "localhost")
 
 # Folder with html pages and static assets
