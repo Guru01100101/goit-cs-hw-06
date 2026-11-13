@@ -65,6 +65,21 @@ class HttpHandler(BaseHTTPRequestHandler):
         else:
             self.send_html("error.html", 404)
 
+    def do_POST(self):
+        path = urlparse(self.path).path
+
+        if path != "/message":
+            self.send_html("error.html", 404)
+            return
+
+        content_length = int(self.headers.get("Content-Length", 0))
+        body = self.rfile.read(content_length)
+        logging.info("Received message form data: %s", body)
+
+        self.send_response(302)
+        self.send_header("Location", "/")
+        self.end_headers()
+
 
 def run_http_server():
     server = HTTPServer((HTTP_HOST, HTTP_PORT), HttpHandler)
