@@ -1,11 +1,14 @@
 import logging
 import os
 import socket
+from datetime import datetime
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import mimetypes
 from multiprocessing import Process
 from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
+
+from pymongo import MongoClient
 
 # HTTP server
 HTTP_HOST = "0.0.0.0"
@@ -101,9 +104,26 @@ def run_socket_server():
         server_socket.bind((SOCKET_HOST, SOCKET_PORT))
         logging.info("UDP server listening on %s:%s", SOCKET_HOST, SOCKET_PORT)
 
-        while True:
-            data, address = server_socket.recvfrom(1024 * 4)
-            logging.info("Received UDP message from %s: %s", address, parse_message(data))
+        mongo_client = MongoClient(MONGO_URI)
+        messages_collection = mongo_client["messages_db"]["messages"]
+
+        try:
+            while True:
+                data, address = server_socket.recvfrom(1024 * 4)
+
+                try:
+                    message = parse_message(data)
+                    document = {
+                        "date": str(datetime.now()),
+                        "username": message["username"],
+                        "message": message["message"],
+                    }
+                    messages_collection.insert_one(document)
+                    logging.info("Saved message from %s", address)
+                except Exception:
+                    logging.exception("Failed to process UDP message from %s", address)
+        finally:
+            mongo_client.close()
 
 
 def run_http_server():
