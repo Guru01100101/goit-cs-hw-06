@@ -1,1 +1,18 @@
-# TODO: services for the web app and MongoDB with persistent volume
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      MONGO_URI: mongodb://mongo:27017
+      SOCKET_HOST_CLIENT: mongo
+    depends_on:
+      - mongo
+
+  mongo:
+    image: mongo:7
+    volumes:
+      - mongo_data:/data/db
+
+volumes:
+  mongo_data:
