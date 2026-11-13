@@ -1,0 +1,8 @@
+[project]
+name = "goit-cs-hw-06"
+version = "0.1.0"
+requires-python = ">=3.13"
+dependencies = [
+    "names>=0.3.0",
+    "websockets>=17.4",
+]
