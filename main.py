@@ -1,8 +1,9 @@
 import logging
 import os
 from http.server import BaseHTTPRequestHandler, HTTPServer
+import mimetypes
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import unquote, urlparse
 
 # HTTP server
 HTTP_HOST = "0.0.0.0"
@@ -35,6 +36,23 @@ class HttpHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(content)
 
+    def send_static(self, path):
+        base_dir = BASE_DIR.resolve()
+        file_path = (base_dir / unquote(path.lstrip("/"))).resolve()
+
+        if not file_path.is_file() or base_dir not in file_path.parents:
+            self.send_html("error.html", 404)
+            return
+
+        content = file_path.read_bytes()
+        content_type = mimetypes.guess_type(file_path.name)[0] or "application/octet-stream"
+
+        self.send_response(200)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(content)))
+        self.end_headers()
+        self.wfile.write(content)
+
     def do_GET(self):
         path = urlparse(self.path).path
 
@@ -42,6 +60,8 @@ class HttpHandler(BaseHTTPRequestHandler):
             self.send_html("index.html")
         elif path in ("/message", "/message.html"):
             self.send_html("message.html")
+        elif path != "/":
+            self.send_static(path)
         else:
             self.send_html("error.html", 404)
 
